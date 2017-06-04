@@ -11778,7 +11778,7 @@ div#notebook {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Data-Wrangling-OpenStreetMap-In-Dublin-Downtown-Area-with-MongoDB">Data Wrangling OpenStreetMap In Dublin Downtown Area with MongoDB<a class="anchor-link" href="#Data-Wrangling-OpenStreetMap-In-Dublin-Downtown-Area-with-MongoDB">&#182;</a></h1>
+<h1 id="OpenStreetMap-Data-Wrangling-for-Dublin-with-MongoDB">OpenStreetMap Data Wrangling for Dublin with MongoDB<a class="anchor-link" href="#OpenStreetMap-Data-Wrangling-for-Dublin-with-MongoDB">&#182;</a></h1>
 </div>
 </div>
 </div>
@@ -11800,25 +11800,31 @@ div#notebook {
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="Problems-Encountered-in-the-Map">Problems Encountered in the Map<a class="anchor-link" href="#Problems-Encountered-in-the-Map">&#182;</a></h2><p>During the data wrangling process, I validated and corrected the following values:</p>
-<p>1- Country<br>
-The country code must be IE which is Irland's Iso code. There were some countries with the different name like 'Irland'.</p>
-<p>2- City<br>
-Same for validating the city. The values I wanted to have in my dataset were "Toronto, York, North York, East York". And as for the province, I discovered other possible values people used to name the cities and here is the list of to be replaced values for the cities:<br>
-Toronto: "CityofToronto", "City of Toronto", "Toronto,ON", "Torontoitalian"<br>
-North York: "NorthYork"<br>
-East York: "EastYork"</p>
-<p>3- Postal Code<br>
-The valid postal code format in Irland is [A-Z]<a href="[A-Z]|[0-9]">0-9</a>. I audited all the postal code values and I found number of invalid postal codes like 'Dublin 4'.</p>
-<p>5- Street<br>
-While auditing the street names, I wanted to remove all the abbreviations. So I searched for any kind of value followed by ".". I found a lot of "St." values in the dataset. I studied more and I figured that this abbreviation in lots of cases is being used for "Saint" and not "Street". So I came up with the list of names (saints) that could come after st. abbreviation and here is the list:<br>
-"Andrew's", "Edmund's", "John's", "Leonard's", "George", "Clair", "Helens", "Dennis", "Joseph", "Clarens", "Matthews", "Hubert", "James", "David", "Thomas", "Mary", "Patrick", "Clements", "Leonards", "Hildas", "Mathias", "Andrews", "Raymond", "Annes", "Cuthberts", "Cuthberts", "Ives", "Edmunds"</p>
+<ul>
+<li>Country<br>
+The country code must be 'IE' which is Ireland's Iso code. There was only one invalid value for country('Ireland') that got converted to 'IE'.  </li>
+</ul>
+<ul>
+<li><p>City<br>
+While validating the city, I found out the following values are valid :</p>
+<p>Dublin, MountMerrion, Churchtown, Stillorgan, Dundrum, Knocklyon,
+Ballyroan, Whitechurch, Rathfarnham, Booterstown, Goatstown, 
+Clonskeagh, Sandyford Industrial Estate, Rathmines, Donnybrook, Belfield</p>
+<p>Also there were some invalid values for Dublin that was converted to Dublin in the dataset :</p>
+<p>Dublin 6W, Dublin 12, Dublin 6, Dublin 4, Dublin 16, Dublin 24</p>
+</li>
+</ul>
+<ul>
+<li>Postal Code<br>
+The valid postal code format in Ireland is [A-Z][0-9]([A-Z]|[0-9]).</li>
+</ul>
 
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[10]:</div>
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="kn">import</span> <span class="nn">xml.etree.cElementTree</span> <span class="kn">as</span> <span class="nn">ET</span>
@@ -11829,7 +11835,7 @@ While auditing the street names, I wanted to remove all the abbreviations. So I 
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 
 <span class="c1">#valid country values </span>
-<span class="n">ireland</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^(IE|Ireland)$&#39;</span><span class="p">)</span>
+<span class="n">expected_country_values</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^(IE|Ireland)$&#39;</span><span class="p">)</span>
 
 <span class="c1">#Created object properties</span>
 <span class="n">CREATED</span> <span class="o">=</span> <span class="p">[</span> <span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="s2">&quot;changeset&quot;</span><span class="p">,</span> <span class="s2">&quot;timestamp&quot;</span><span class="p">,</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;uid&quot;</span><span class="p">]</span>
@@ -11837,17 +11843,17 @@ While auditing the street names, I wanted to remove all the abbreviations. So I 
 <span class="c1">#Position object Properties</span>
 <span class="n">POSITION</span> <span class="o">=</span> <span class="p">[</span> <span class="s2">&quot;lat&quot;</span><span class="p">,</span> <span class="s2">&quot;lon&quot;</span><span class="p">]</span>
 
-<span class="c1">#find the two-level values </span>
+<span class="c1">#RG for one-colon elements   </span>
 <span class="n">lower_colon</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^([a-z]|_)*:([a-z]|_)*$&#39;</span><span class="p">)</span>
 
-<span class="c1">#find the three-level values </span>
+<span class="c1">#RG for two-colon elements</span>
 <span class="n">lower_double_colon</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^([a-z]|_)*:([a-z]|_)*:([a-z]|_)*$&#39;</span><span class="p">)</span>
 
 <span class="c1">#valid cities</span>
-<span class="n">city</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^(Dublin|Mount Merrion|Churchtown|Stillorgan|Dundrum|Knocklyon|Ballyroan|Whitechurch|Rathfarnham|Booterstown|Goatstown|Clonskeagh|Sandyford Industrial Estate|Rathmines|Donnybrook|Belfield)$&#39;</span><span class="p">)</span>
+<span class="n">valid_city_values</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^(Dublin|Mount Merrion|Churchtown|Stillorgan|Dundrum|Knocklyon|Ballyroan|Whitechurch|Rathfarnham|Booterstown|Goatstown|Clonskeagh|Sandyford Industrial Estate|Rathmines|Donnybrook|Belfield)$&#39;</span><span class="p">)</span>
 
-<span class="c1">#other toronto values to be converted to &quot;Toronto&quot;</span>
-<span class="n">dublin_alternative</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Dublin 6W&quot;</span><span class="p">,</span> <span class="s2">&quot;Dublin 12&quot;</span><span class="p">,</span> <span class="s2">&quot;Dublin 6&quot;</span><span class="p">,</span> <span class="s2">&quot;Dublin 4&quot;</span><span class="p">,</span> <span class="s2">&quot;Dublin 16&quot;</span><span class="p">,</span> <span class="s2">&quot;Dublin 24&quot;</span> <span class="p">]</span>
+<span class="c1">#dublin other valid values</span>
+<span class="n">dublin_other_values</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Dublin 6W&quot;</span><span class="p">,</span> <span class="s2">&quot;Dublin 12&quot;</span><span class="p">,</span> <span class="s2">&quot;Dublin 6&quot;</span><span class="p">,</span> <span class="s2">&quot;Dublin 4&quot;</span><span class="p">,</span> <span class="s2">&quot;Dublin 16&quot;</span><span class="p">,</span> <span class="s2">&quot;Dublin 24&quot;</span> <span class="p">]</span>
 
 <span class="c1">#find the problamatic values </span>
 <span class="n">problemchars</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[=\+/&amp;&lt;&gt;;</span><span class="se">\&#39;</span><span class="s1">&quot;\?%#$@\,\. \t\r\n]&#39;</span><span class="p">)</span>
@@ -11913,23 +11919,23 @@ While auditing the street names, I wanted to remove all the abbreviations. So I 
         <span class="n">type_name</span> <span class="o">=</span> <span class="n">node</span><span class="p">[</span><span class="n">key1</span><span class="p">]</span>
         <span class="n">node</span><span class="p">[</span><span class="n">key1</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">node</span><span class="p">[</span><span class="n">key1</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">type_name</span>    
-    <span class="n">is_valid_value</span><span class="p">,</span> <span class="n">final_value</span> <span class="o">=</span> <span class="n">check_value</span><span class="p">(</span><span class="n">tag_key</span><span class="p">,</span> <span class="n">element</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">])</span>    
+    <span class="n">is_valid_value</span><span class="p">,</span> <span class="n">final_value</span> <span class="o">=</span> <span class="n">GetValue</span><span class="p">(</span><span class="n">tag_key</span><span class="p">,</span> <span class="n">element</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">])</span>    
     <span class="k">if</span> <span class="n">is_valid_value</span><span class="p">:</span>
         <span class="n">node</span><span class="p">[</span><span class="n">key1</span><span class="p">][</span><span class="n">key2</span><span class="p">]</span> <span class="o">=</span> <span class="n">final_value</span>
 
 <span class="c1"># validate and convert value for country, city , postalcode</span>
-<span class="k">def</span> <span class="nf">Convert</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span> 
+<span class="k">def</span> <span class="nf">GetValue</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span> 
     <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;addr:country&#39;</span><span class="p">:</span>
-        <span class="n">m</span> <span class="o">=</span> <span class="n">ireland</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">expected_country_values</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">True</span><span class="p">,</span><span class="s2">&quot;IE&quot;</span>
         <span class="n">ignored_element</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">False</span><span class="p">,</span><span class="s2">&quot;&quot;</span>
     <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;addr:city&#39;</span><span class="p">:</span>        
-        <span class="n">m</span> <span class="o">=</span> <span class="n">city</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">valid_city_values</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">True</span><span class="p">,</span><span class="n">value</span>
-        <span class="k">elif</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">dublin_alternative</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">dublin_other_values</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">True</span><span class="p">,</span><span class="s2">&quot;Dublin&quot;</span>
         <span class="n">ignored_element</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">False</span><span class="p">,</span><span class="s2">&quot;&quot;</span>
@@ -11965,10 +11971,43 @@ While auditing the street names, I wanted to remove all the abbreviations. So I 
     <span class="k">return</span> <span class="n">data</span>
 
 <span class="n">data</span> <span class="o">=</span> <span class="n">process_map</span><span class="p">(</span><span class="s1">&#39;dublin.osm&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
-<span class="c1">#print ignored_element</span>
 </pre></div>
 
 </div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[10]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span></span><span class="k">print</span> <span class="nb">len</span><span class="p">(</span><span class="n">ignored_element</span><span class="p">)</span>
+<span class="n">invalid_values_without_colon</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="s1">&#39;:&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span><span class="p">,</span> <span class="n">ignored_element</span><span class="p">)</span>
+<span class="k">print</span> <span class="nb">len</span><span class="p">(</span><span class="n">invalid_values_without_colon</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">invalid_values_without_colon</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+<div class="prompt"></div>
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>13165
+26
+[&#39;A94 X886&#39;, &#39;D06 A998&#39;, &#39;Sandyford&#39;, &#39;Dublin 4&#39;, &#39;D6W F729&#39;, &#39;D12 A0HC&#39;, &#39;D06 K283&#39;, &#39;D12 P5YP&#39;, &#39;D14 HD83&#39;, &#39;D6W HY98&#39;, &#39;D04 A373&#39;, &#39;D06 HP90&#39;, &#39;Dublin 18&#39;, &#39;Dublin 18&#39;, &#39;Dublin 14&#39;, &#39;D6W RY72&#39;, &#39;D04 HK50&#39;, &#39;Kilmacud&#39;, &#39;D16 KH51&#39;, &#39;Leopardstown&#39;, &#39;D06 CF67&#39;, &#39;Dublin 14&#39;, &#39;Milltown&#39;, &#39;Crumlin&#39;, &#39;Dublin 12&#39;, &#39;Dublin 12&#39;]
+</pre>
+</div>
+</div>
+
 </div>
 </div>
 
@@ -12010,6 +12049,82 @@ dublin.osm.json 73,359KB</p>
 { "_id" : "conorb", "count" : 15772 }<br>
 { "_id" : "ManAboutCouch", "count" : 11326 }<br>
 { "_id" : "GoldCircle", "count" : 8079 }</p>
+<p>Addresses per City :</p>
+<blockquote><p>db.dublin.aggregate([{"\$group":{"_id":"\$addr.city","count":{"\$sum":1}}}, {"\$sort" : {"count":-1}}])</p>
+</blockquote>
+<p>{ "_id" : null, "count" : 718042 }<br>
+{ "_id" : "Dublin", "count" : 3016 }<br>
+{ "_id" : "Dundrum", "count" : 60 }<br>
+{ "_id" : "Rathfarnham", "count" : 20 }<br>
+{ "_id" : "Stillorgan", "count" : 11 }<br>
+{ "_id" : "Churchtown", "count" : 8 }<br>
+{ "_id" : "Mount Merrion", "count" : 7 }<br>
+{ "_id" : "Clonskeagh", "count" : 4 }<br>
+{ "_id" : "Rathmines", "count" : 3 }<br>
+{ "_id" : "Sandyford Industrial Estate", "count" : 3 }<br>
+{ "_id" : "Whitechurch", "count" : 2 }<br>
+{ "_id" : "Goatstown", "count" : 2 }<br>
+{ "_id" : "Donnybrook", "count" : 2 }<br>
+{ "_id" : "Belfield", "count" : 1 }<br>
+{ "_id" : "Ballyroan", "count" : 1 }<br>
+{ "_id" : "Knocklyon", "count" : 1 }<br>
+{ "_id" : "Booterstown", "count" : 1 }</p>
+<p>Top 10 amenities :</p>
+<blockquote><p>db.dublin.aggregate([{"\$match":{"amenity":{"\$exists":1}}},{"\$group":{"_id":"\$a
+menity","count":{"\$sum":1}}}, {"\$sort" : {"count":-1}},{"\$limit" :10}])</p>
+</blockquote>
+<p>{ "_id" : "parking", "count" : 767 }<br>
+{ "_id" : "post_box", "count" : 317 }<br>
+{ "_id" : "fast_food", "count" : 315 }<br>
+{ "_id" : "bench", "count" : 305 }<br>
+{ "_id" : "restaurant", "count" : 295 }<br>
+{ "_id" : "pub", "count" : 242 }<br>
+{ "_id" : "bicycle_parking", "count" : 232 }<br>
+{ "_id" : "cafe", "count" : 200 }<br>
+{ "_id" : "pharmacy", "count" : 187 }<br>
+{ "_id" : "school", "count" : 177 }</p>
+<p>School types in the area :</p>
+<blockquote><p>db.dublin.aggregate([{"\$match":{"amenity":{"\$exists":1}, "amenity":"school"}
+}, {"\$group":{"_id":"\$school", "count":{"\$sum":1}}},{"\$sort":{"count":-1}},
+{"\$limit":10}])</p>
+</blockquote>
+<p>{ "_id" : null, "count" : 164 }<br>
+{ "_id" : "music", "count" : 9 }<br>
+{ "_id" : "language", "count" : 3 }<br>
+{ "_id" : "secondary", "count" : 1 }</p>
+<p>Bench types in the area :</p>
+<blockquote><p>db.dublin.aggregate([{"\$match":{"amenity":{"\$exists":1}, "amenity":"bench"}}, {"\$group":{"_id":"\$backrest", "count":{"\$sum":1}}},{"\$sort":{"count":-1}}])</p>
+</blockquote>
+<p>{ "_id" : null, "count" : 188 }<br>
+{ "_id" : "yes", "count" : 101 }<br>
+{ "_id" : "no", "count" : 16 }</p>
+<p>Restaurant types in the area :</p>
+<blockquote><p>db.dublin.aggregate([{"\$match":{"amenity":{"\$exists":1}, "amenity":"restaurant"}}, {"\$group":{"_id":"\$cuisine", "count":{"\$sum":1}}},{"\$sort":{"count":-1}}])</p>
+</blockquote>
+<p>{ "_id" : null, "count" : 132 }<br>
+{ "_id" : "italian", "count" : 32 }<br>
+{ "_id" : "indian", "count" : 24 }<br>
+{ "_id" : "pizza", "count" : 20 }<br>
+{ "_id" : "thai", "count" : 15 }<br>
+{ "_id" : "asian", "count" : 12 }<br>
+{ "_id" : "burger", "count" : 6 }<br>
+{ "_id" : "chinese", "count" : 6 }<br>
+{ "_id" : "regional", "count" : 5 }<br>
+{ "_id" : "sushi", "count" : 4 }<br>
+{ "_id" : "steak_house", "count" : 4 }<br>
+{ "_id" : "japanese", "count" : 3 }<br>
+{ "_id" : "nepalese", "count" : 3 }<br>
+{ "<em>id" : "Chinese</em>&amp;_Thai", "count" : 3 }<br>
+{ "_id" : "chicken", "count" : 3 }<br>
+{ "_id" : "mexican", "count" : 3 }<br>
+{ "_id" : "grill", "count" : 3 }<br>
+{ "<em>id" : "Lebanese</em>&amp;_Palestinian", "count" : 3 }<br>
+{ "_id" : "persian", "count" : 3 }<br>
+{ "_id" : "kebab", "count" : 3 }<br>
+{ "_id" : "korean", "count" : 3 }<br>
+{ "_id" : "tapas", "count" : 2 }<br>
+{ "_id" : "european", "count" : 2 }<br>
+{ "_id" : "seafood", "count" : 1 }</p>
 
 </div>
 </div>
@@ -12019,7 +12134,13 @@ dublin.osm.json 73,359KB</p>
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Additional-Ideas">Additional Ideas<a class="anchor-link" href="#Additional-Ideas">&#182;</a></h2>
+<h2 id="Additional-Ideas">Additional Ideas<a class="anchor-link" href="#Additional-Ideas">&#182;</a></h2><p>The problematic elements are stored in ignored_element array. As we can see there are 13,165 invalid items in the list. If we ignore items with two colons (13139), we have 26 invalid items in the list.</p>
+<p>Another concern is about the amenities that are mentioned in the area are not fully complete as it is described in the following:</p>
+<p>School types: 164 out of 177
+Bench types: 188 out of 305
+Restaurant types: 132 out of 295</p>
+<p>We could encourage contributors to put more information about the amenities by providing a rich uer interface.</p>
+
 </div>
 </div>
 </div>
